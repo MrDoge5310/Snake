@@ -21,6 +21,9 @@ class Block:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.width)
         pygame.draw.rect(screen, 'blue', self.rect, width=0)
 
+    def SpawnFruit(self):
+        pygame.draw.rect(screen, 'yellow', self.rect, width=0)
+
 
 class Snake:
     """snake"""
@@ -30,14 +33,15 @@ class Snake:
         self.direction = "top"
         self.head = Block(600, 400)
         self.body = [self.head, Block(self.head.x, self.head.y + 20), Block(self.head.x, self.head.y + 40)]
-        self.size = len(self.body)
+        self.size = 3
 
     def drawSnake(self):
         """drawing snake"""
-        for i in range(self.size):
+        for i in range(len(self.body)):
             self.body[i].DrawBlock()
 
     def move(self):
+        global tempXa, tempYa
         tempX = self.head.x
         tempY = self.head.y
 
@@ -50,32 +54,51 @@ class Snake:
         elif self.direction == "right":
             self.head.x += 20
 
-        for i in range(self.size):
-            if i > 0:
+        for i in range(len(self.body)):
+            if i % 2 != 0:
+                tempXa = self.body[i].x
+                tempYa = self.body[i].y
                 self.body[i].x = tempX
                 self.body[i].y = tempY
+            elif i % 2 == 0 and i > 0:
                 tempX = self.body[i].x
                 tempY = self.body[i].y
+                self.body[i].x = tempXa
+                self.body[i].y = tempYa
 
     def growUp(self):
-        self.size += 1
-        self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y))
+        if len(self.body) < 20:
+            if self.direction == "top":
+                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y+20))
+            elif self.direction == "down":
+                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y-20))
+            elif self.direction == "left":
+                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y-20))
+            elif self.direction == "right":
+                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y+20))
 
 
 def GetRandomCords():
-    x = random.randint(0, 1200)
-    y = random.randint(0, 800)
+    x = 1
+    y = 1
+    while x % 20 != 0 and y % 20 != 0:
+        x = random.randint(0, 1200)
+        y = random.randint(0, 800)
+    block = Block(x, y)
+    return block
 
 
 pygame.init()
 clock = pygame.time.Clock()
 
-FPS = 3
+FPS = 6
 high = 800
 width = 1200
 screen = pygame.display.set_mode((width, high))
 
 snake_ = Snake()
+fruit = GetRandomCords()
+fruit.SpawnFruit()
 snake_.drawSnake()
 
 while True:
@@ -96,7 +119,7 @@ while True:
             elif event.key == pygame.K_DOWN:
                 if snake_.direction != "top":
                     snake_.direction = "down"
-
+    snake_.growUp()
     snake_.move()
     snake_.drawSnake()
     pygame.display.flip()
