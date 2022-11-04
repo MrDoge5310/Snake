@@ -1,6 +1,7 @@
 import sys
 import pygame
 import random
+from tkinter import messagebox
 
 
 class Block:
@@ -21,7 +22,10 @@ class Block:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.width)
         pygame.draw.rect(screen, 'blue', self.rect, width=0)
 
-    def SpawnFruit(self):
+    def SpawnFruit(self, block):
+        self.x = block.x
+        self.y = block.y
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.width)
         pygame.draw.rect(screen, 'yellow', self.rect, width=0)
 
 
@@ -31,7 +35,7 @@ class Snake:
     def __init__(self):
         """cords and length"""
         self.direction = "top"
-        self.head = Block(600, 400)
+        self.head = Block(width // 2, high // 2)
         self.body = [self.head, Block(self.head.x, self.head.y + 20), Block(self.head.x, self.head.y + 40)]
         self.size = 3
 
@@ -41,7 +45,8 @@ class Snake:
             self.body[i].DrawBlock()
 
     def move(self):
-        global tempXa, tempYa
+        tempXa = 0
+        tempYa = 0
         tempX = self.head.x
         tempY = self.head.y
 
@@ -67,41 +72,76 @@ class Snake:
                 self.body[i].y = tempYa
 
     def growUp(self):
-        if len(self.body) < 20:
-            if self.direction == "top":
-                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y+20))
-            elif self.direction == "down":
-                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y-20))
-            elif self.direction == "left":
-                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y-20))
-            elif self.direction == "right":
-                self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y+20))
+        if self.direction == "top":
+            self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y + 20))
+        elif self.direction == "down":
+            self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y - 20))
+        elif self.direction == "left":
+            self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y - 20))
+        elif self.direction == "right":
+            self.body.append(Block(self.body[self.size - 1].x, self.body[self.size - 1].y + 20))
+
+    @property
+    def checkCollisions(self):
+        for i in range(len(self.body)):
+            if i > 0:
+                if self.head.rect == self.body[i].rect and self.head.rect == self.body[i].rect:
+                    return True
+        if self.head.x >= width or self.head.x == 0:
+            return True
+        elif self.head.y >= high or self.head.y == 0:
+            return True
+        else:
+            return False
+
+    def isFruitEaten(self):
+        if self.head.rect == fruit.rect:
+            self.growUp()
+            fruit.SpawnFruit(GetRandomCords())
+            return True
+        else:
+            return False
 
 
 def GetRandomCords():
-    x = 1
-    y = 1
-    while x % 20 != 0 and y % 20 != 0:
-        x = random.randint(0, 1200)
-        y = random.randint(0, 800)
+    xlist = []
+    ylist = []
+    xtemp = 0
+    ytemp = 0
+    for i in range(width // 20):
+        xlist.append(xtemp)
+        xtemp += 20
+    for i in range(high // 20):
+        ylist.append(ytemp)
+        ytemp += 20
+    x = xlist[random.randint(1, width // 20 - 1)]
+    y = ylist[random.randint(1, high // 20 - 1)]
     block = Block(x, y)
     return block
 
 
 pygame.init()
+pygame.display.set_caption("Snake")
+pygame.font.init()
+GameOver = False
 clock = pygame.time.Clock()
+score_font = pygame.font.Font(None, 24)
 
-FPS = 6
-high = 800
-width = 1200
+FPS = 8
+high = 600
+width = 800
 screen = pygame.display.set_mode((width, high))
 
 snake_ = Snake()
 fruit = GetRandomCords()
-fruit.SpawnFruit()
+fruit.SpawnFruit(fruit)
 snake_.drawSnake()
+score = 0
 
-while True:
+score_display = score_font.render(f"Score: {score}", True, 'black', 'white')
+screen.blit(score_display, (0, 0))
+
+while not GameOver:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -119,8 +159,15 @@ while True:
             elif event.key == pygame.K_DOWN:
                 if snake_.direction != "top":
                     snake_.direction = "down"
-    snake_.growUp()
+
     snake_.move()
     snake_.drawSnake()
+    if snake_.isFruitEaten():
+        score += 15
+        score_display = score_font.render(f"Score: {score}", True, 'black', 'white')
+        screen.blit(score_display, (0, 0))
+    GameOver = snake_.checkCollisions
     pygame.display.flip()
     clock.tick(FPS)
+
+messagebox.showinfo("Fail", f"Game Over\nScore: {score}")
